@@ -75,7 +75,7 @@ static gboolean showVersionOnly = FALSE;
 static gboolean sign = FALSE;
 static gboolean no_appstream = FALSE;
 gchar **remaining_args = NULL;
-gchar *updateinformation = NULL;
+gchar updateinformation[1024] = {0};
 static gboolean guess_update_information = FALSE;
 gchar *sqfs_comp = NULL;
 gchar **sqfs_opts = NULL;
@@ -952,13 +952,14 @@ main (int argc, char *argv[])
                     if(zsyncmake_path){
                         char buf[1024];
                         // gh-releases-zsync|probono|AppImages|latest|Subsurface-*x86_64.AppImage.zsync
-                        int ret = snprintf(buf, "gh-releases-zsync|%s|%s|latest|%s*-%s.AppImage.zsync", github_repository_owner, github_repository_name, app_name_for_filename, arch);
+                        int ret = snprintf(buf, sizeof(buf), "gh-releases-zsync|%s|%s|latest|%s*-%s.AppImage.zsync", github_repository_owner, github_repository_name, app_name_for_filename, arch);
                         if (ret < 0) {
                             die("snprintf error");
                         } else if (ret >= sizeof(buf)) {
                             die("snprintf buffer overflow");
                         }
-                        updateinformation = buf;
+                        assert(sizeof(updateinformation) >= sizeof(buf));
+                        strcpy(updateinformation, buf);
                         printf("Guessing update information based on $GITHUB_REPOSITORY=%s\n", github_repository);
                         printf("%s\n", updateinformation);
                     } else {
@@ -993,7 +994,8 @@ main (int argc, char *argv[])
                         } else if (ret >= sizeof(buf)) {
                             die("snprintf buffer overflow");
                         }
-                        updateinformation = buf;
+                        assert(sizeof(updateinformation) >= sizeof(buf));
+                        strcpy(updateinformation, buf);
                         printf("Guessing update information based on $TRAVIS_TAG=%s and $TRAVIS_REPO_SLUG=%s\n", travis_tag, travis_repo_slug);
                         printf("%s\n", updateinformation);
                     } else {
@@ -1011,7 +1013,8 @@ main (int argc, char *argv[])
                     } else if (ret >= sizeof(buf)) {
                         die("snprintf buffer overflow");
                     }
-                    updateinformation = buf;
+                    assert(sizeof(updateinformation) >= sizeof(buf));
+                    strcpy(updateinformation, buf);
                     printf("Guessing update information based on $CI_COMMIT_REF_NAME=%s and $CI_JOB_NAME=%s\n", CI_COMMIT_REF_NAME, CI_JOB_NAME);
                     printf("%s\n", updateinformation);
                 } else {
@@ -1021,7 +1024,7 @@ main (int argc, char *argv[])
         }
         
         /* If updateinformation was provided, then we check and embed it */
-        if(updateinformation != NULL){
+        if(updateinformation[0] != 0){
             if(!g_str_has_prefix(updateinformation,"zsync|"))
                 if(!g_str_has_prefix(updateinformation,"gh-releases-zsync|"))
                     if(!g_str_has_prefix(updateinformation,"pling-v1-zsync|"))
@@ -1121,7 +1124,7 @@ main (int argc, char *argv[])
         }
 
         /* If updateinformation was provided, then we also generate the zsync file (after having signed the AppImage) */
-        if (updateinformation != NULL) {
+        if (updateinformation[0] != 0) {
             gchar* zsyncmake_path = g_find_program_in_path("zsyncmake");
             if (!zsyncmake_path) {
                 fprintf(stderr, "zsyncmake is not installed/bundled, skipping\n");
